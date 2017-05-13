@@ -8,12 +8,16 @@ public class UISolidView : MonoBehaviour {
     bool dragging = false;
     public GameObject water;
     public GameObject Arrow;
+    //Transform waterParent;
 
     void Start()
     {
-        List<Element> solids = Config.Instance.GetSolidsConfig();
+        List<Element> listItem = Config.Instance.GetSolidsConfig();
+        ////add for 2d
+        //Transform tParent = transform.FindChild("Viewport/Content");
+        //waterParent = GameObject.Find("Canvas").transform;
 
-        foreach (var VARIABLE in solids)
+        foreach (var VARIABLE in listItem)
         {
             GameObject uiItem = Instantiate(item);
             uiItem.transform.SetParent(transform);
@@ -37,24 +41,35 @@ public class UISolidView : MonoBehaviour {
     {
         if (dragging) return;
         dragging = true;
-
+        ////add for 2d
+        //water = Instantiate(go);
+        //water.transform.SetParent(waterParent);
+        //water.transform.localScale = Vector3.one;
+        //water.transform.localPosition = Vector3.zero;
+        //water.transform.localRotation = Quaternion.identity;
     }
 
     void OnPointerUp(GameObject go)
     {
-        if (Arrow.activeSelf) MainCtrl.Instance.AddElement(go.GetComponent<ItemCtrl>().element.Copy());
+        if (Arrow.activeSelf)
+            MainCtrl.Instance.AddElement(go.GetComponent<ItemCtrl>().element.Copy());
 
         dragging = false;
         Arrow.SetActive(false);
         water.transform.position = new Vector3(0, 10, 8.5f);
         water.transform.eulerAngles = new Vector3(0, 0, 0);
+        ////add for 2d
+        //Destroy(water);
+
     }
 
     void Update()
     {
         if (water == null) return;
         if (!dragging) return;
-        if(dragging) water.transform.position = Camera.main.ScreenToWorldPoint(Input.mousePosition + new Vector3(0,0,3));
+        if(dragging)
+            //water.transform.position = Input.mousePosition + new Vector3(0, 0, 3);
+        water.transform.position = Camera.main.ScreenToWorldPoint(Input.mousePosition + new Vector3(0,0,3));
 
         //water.transform.position = water.transform.position + new Vector3(0, 0, -1 * water.transform.position.z + 10);
 

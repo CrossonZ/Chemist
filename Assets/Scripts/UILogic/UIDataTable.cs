@@ -32,7 +32,8 @@ public class UIDataTable : MonoBehaviour
         foreach (Element e in elements)
         {
             items[index].SetActive(true);
-            items[index].GetComponent<Text>().text = e.name;
+            //if(e.amount != 0)
+                items[index].GetComponent<Text>().text = e.name + " " + e.count;
             index++;
         }
     }

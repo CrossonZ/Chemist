@@ -146,6 +146,13 @@ public class Config:MonoBehaviour
                 results.Add(equation.Copy());
             }
         }
+        foreach (Equation equation in ionRules)
+        {
+            if (equation.TestElements(elements))
+            {
+                results.Add(equation.Copy());
+            }
+        }
         return results;
     } 
 }

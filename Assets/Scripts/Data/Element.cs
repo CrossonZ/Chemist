@@ -29,6 +29,7 @@ public class Element
     /// </summary>
     public int solubility;
     public float amount;
+    public float count;
 
     public Element Copy()
     {
@@ -40,7 +41,8 @@ public class Element
             color = color,
             ionization = ionization,
             solubility = solubility,
-            amount = amount
+            amount = amount,
+            count = count,
         };
     }
 }

@@ -20,12 +20,41 @@ public class MainCtrl : MonoBehaviour
     /// </summary>
     private List<Element> m_elements;
 
-	// Use this for initialization
-	void Start ()
+    /// <summary>
+    /// 之前烧杯里的总物质列表
+    /// </summary>
+    private List<Element> m_oldElements;
+
+    List<Equation> m_oldEquations ;
+
+
+    // Use this for initialization
+    void Start ()
 	{
 	    Instance = this;
         Config.Instance.Init();
         m_elements = new List<Element>();
+        m_oldElements = new List<Element>();
+        m_oldEquations = new List<Equation>();
+    } 
+
+    /// <summary>
+    /// 
+    /// </summary>
+    void Update()
+    {
+        if (m_oldElements.Equals(m_elements))
+            return;
+        if (m_elements.Count == 0) 
+            return;
+        m_oldElements.Clear();
+        foreach (Element e in m_elements)
+        {
+            m_oldElements.Add(e);
+        }
+        //匹配可反应式子
+        OnModify();
+
     }
 
     /// <summary>
@@ -42,32 +71,27 @@ public class MainCtrl : MonoBehaviour
         Element storedElement = m_elements.Find(item => item.id == e.id);
         if (storedElement == null)
         {
+            //e.count = 1000;
             m_elements.Add(e);
             //新增物质/离子后，容器内的结果计算
-            OnAddNewElement(e);
+            foreach (Element ele in OnAddNewElement(e))
+            {
+                m_elements.Add(ele);
+            }
+            //List<Element> addElement = new List<Element>();
+            //addElement.Add(e);
             //匹配可反应式子
-            OnModify();
+            //OnModify();
         }
         else
         {
-            storedElement.amount += e.amount;
+            storedElement.count += e.amount;
         }
+        OnModify();
     }
 
-    private void OnAddNewElement(Element e)
+    private List<Element> OnAddNewElement(Element e)
     {
-        switch (e.state)
-        {
-            case 2:
-                cupCtrl.ShowWater(0.4f);
-                break;
-            case 1:
-                cupCtrl.ShowSolid(1f);
-                break;
-            default:
-                break;
-        }
-
         List<Element> toAdds = new List<Element>();
         for (int i = 0; i < m_elements.Count; i++)
         {
@@ -76,15 +100,18 @@ public class MainCtrl : MonoBehaviour
                 List<Element> ionResults = Config.Instance.GetIonResult(m_elements[i]);
                 foreach (Element VARIABLE in ionResults)
                 {
+                    if(m_elements.Find(item => item.id == VARIABLE.id) ==null)
                     toAdds.Add(VARIABLE.Copy());
                 }
             }
         }
 
-        for (int i = 0; i < toAdds.Count; i++)
-        {
-            AddElement(toAdds[i]);
-        }
+        return toAdds;
+
+        //for (int i = 0; i < toAdds.Count; i++)
+        //{
+        //    AddElement(toAdds[i]);
+        //}
     }
 
     public void ClearElements()
@@ -109,38 +136,111 @@ public class MainCtrl : MonoBehaviour
     {
         //匹配可反应的方程
         List<Equation> equations = Config.Instance.GetEquationMatched(m_elements);
-        if (equations != null && equations.Count > 0)
-        {
-            //ui 现实 可放映的方程
-            uiFunction.gameObject.SetActive(true);
-            uiFunction.AddFunction(equations[0].equation);
 
+        foreach (Equation equation in equations)
+        {
+            foreach (Element element in equation.leftElements)
+            {
+                List<Element> m_beRemoveElements = new List<Element>();
+                foreach (Element ele in m_elements)
+                {
+                    if (ele.id == element.id)
+                    {
+                        ele.count -= element.amount;
+                        if (ele.count == 0)
+                        {
+                            m_beRemoveElements.Add(ele);
+                        }
+                        else if (ele.count < element.amount)
+                        {
+                            m_beRemoveElements.Add(ele);
+                        }
+                    }
+                }
+                foreach (Element ele in m_beRemoveElements)
+                {
+                    m_elements.Remove(ele);
+                }
+                
+            }
+
+            foreach (Element element in equation.rightElements)
+            {
+                Element storedElement = m_elements.Find(item => item.id == element.id);
+                if (storedElement != null)
+                {
+                    storedElement.count += element.amount;
+                }
+                else
+                {
+                    element.count = element.amount;
+                    m_elements.Add(element);
+                }
+            }
+        }
+
+        if (equations != null && equations.Count > 0 && !equations.Equals(m_oldEquations))
+        {
+            for (int i = 0; i < equations.Count; i++)
+            {
+                if (m_oldEquations.Count == 0)
+                {
+                    m_oldEquations.Add(equations[i]);
+                    uiFunction.AddFunction(equations[i].equation);
+                    continue;
+                }
+                List<Equation> m_beAddElements = new List<Equation>();
+                if (!isEquationExist(m_oldEquations, equations[i]))
+                {
+                    uiFunction.AddFunction(equations[i].equation);
+                    m_beAddElements.Add(equations[i]);
+                }
+
+                foreach (Equation ele in m_beAddElements)
+                {
+                    m_oldEquations.Add(ele);
+                }
+
+            }
+            if (m_oldEquations.Count != 0)
+            {
+                //ui 现实 可放映的方程
+                uiFunction.gameObject.SetActive(true);
+            }
+            else
+            {
+                uiFunction.gameObject.SetActive(false);
+            }
             //把反应特效打开
             //根据反应方程配置的效果类型，打开不同的特效，现在只有写死的一个
             //cupCtrl.ShowEffect(1);
             cupCtrl.ShowEffect();
-
-
         }
         else
         {
-            ///没有匹配到方程，关闭所有效果
-            cupCtrl.HideEffect();
-            uiFunction.gameObject.SetActive(false);
+            if (cupCtrl != null)
+            {
+                ///没有匹配到方程，关闭所有效果
+                cupCtrl.HideEffect();
+                //uiFunction.gameObject.SetActive(false);
+            }
         }
 
         uiDataTable.gameObject.SetActive(true);
         //刷新物质列表内容
         uiDataTable.Show(m_elements);
     }
-    
-    /// <summary>
-    /// 
-    /// </summary>
-    void Update()
+
+    public bool isEquationExist(List<Equation> m_oldEquations, Equation e)
     {
-        
+        foreach (Equation equ in m_oldEquations)
+        {
+            if (equ.equation == e.equation)
+                return true;
+        }
+        return false;
     }
+
 
     public void DebugList()
     {
